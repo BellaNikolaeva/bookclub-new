@@ -1,0 +1,9 @@
+{
+    "name": "bookclub",
+    "version": "1.0.0",
+    "dependencies": {
+      "express": "^4.18.2",
+      "firebase-admin": "^11.11.0",
+      "node-fetch": "^2.7.0"
+    }
+  }
