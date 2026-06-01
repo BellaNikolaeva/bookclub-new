@@ -1,130 +1,759 @@
-const express = require('express');
-const admin = require('firebase-admin');
-const fetch = require('node-fetch');
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Книжный клуб Тулы</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: linear-gradient(145deg, #f8f5f0 0%, #f0ebe3 100%);
+            min-height: 100vh;
+            padding: 24px 20px;
+        }
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+        .header {
+            background: rgba(255, 248, 235, 0.9);
+            border-radius: 48px;
+            padding: 12px 24px;
+            margin-bottom: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            border: 1px solid rgba(210,180,140,0.3);
+        }
+        .logo h1 {
+            font-size: 1.7rem;
+            background: linear-gradient(135deg, #2c3e2f, #5c3e1f);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .user-info {
+            background: #fff6ed;
+            padding: 6px 18px;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .admin-badge {
+            background: #c7a46b;
+            color: white;
+            border-radius: 30px;
+            padding: 4px 12px;
+            font-size: 0.75rem;
+        }
+        .meetings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 28px;
+            margin-top: 20px;
+        }
+        .meeting-card {
+            background: white;
+            border-radius: 32px;
+            padding: 24px;
+            box-shadow: 0 12px 24px -12px rgba(0,0,0,0.1);
+            border: 1px solid #f1e2d0;
+            position: relative;
+        }
+        .book-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c4128;
+            margin-bottom: 8px;
+            padding-right: 50px;
+        }
+        .author {
+            color: #866f50;
+            margin-bottom: 12px;
+        }
+        .meeting-details {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 12px 0;
+        }
+        .detail {
+            background: #f6ede3;
+            padding: 5px 12px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+        }
+        .guests-section {
+            margin: 18px 0 16px;
+            background: #fdf9f3;
+            border-radius: 24px;
+            padding: 12px 16px;
+        }
+        .guest-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .guest-badge {
+            background: #e9dbcd;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+        }
+        .btn {
+            border: none;
+            padding: 10px 18px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .btn-primary {
+            background: #2c5e2f;
+            color: white;
+        }
+        .btn-danger {
+            background: #cfb197;
+            color: #5a2e14;
+        }
+        .btn-add {
+            background: #5c4426;
+            color: white;
+            margin-bottom: 20px;
+        }
+        .admin-actions {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+        }
+        .icon-btn {
+            background: #f0e3d4;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .login-container {
+            max-width: 450px;
+            margin: 80px auto;
+            background: white;
+            border-radius: 48px;
+            padding: 40px;
+            text-align: center;
+        }
+        .login-input {
+            width: 100%;
+            padding: 14px 20px;
+            border-radius: 60px;
+            border: 1px solid #ddcdb5;
+            margin: 16px 0;
+            font-size: 1rem;
+        }
+        .error-message {
+            color: #d32f2f;
+            font-size: 0.85rem;
+            margin-top: -10px;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 40px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+        }
+        .modal-content input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0 16px;
+            border-radius: 60px;
+            border: 1px solid #ddcdb5;
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #7e6952;
+        }
+        .fake-message {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            flex-direction: column;
+        }
+        .fake-message h1 {
+            color: #ff4444;
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        .fake-message p {
+            color: #ffffff;
+            font-size: 1.5rem;
+        }
+        .fake-message small {
+            color: #888888;
+            font-size: 1rem;
+            margin-top: 30px;
+        }
+        @media (max-width: 700px) {
+            .meetings-grid { grid-template-columns: 1fr; }
+            .fake-message h1 { font-size: 2rem; }
+            .fake-message p { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+<div id="root"></div>
 
-const app = express();
-app.use(express.json());
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-// Firebase Admin SDK
-const serviceAccount = {
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+<!-- React & Babel -->
+<script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+// Конфигурация Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyDeKUvJ50VcDihRi4EpE7PPJjPP-yhdiKs",
+  authDomain: "book-club-2025-06.firebaseapp.com",
+  projectId: "book-club-2025-06",
+  storageBucket: "book-club-2025-06.firebasestorage.app",
+  messagingSenderId: "290500419564",
+  appId: "1:290500419564:web:e748262bfa58fd667b2ac9"
 };
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-}
+// Инициализация Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-const db = admin.firestore();
-
-// API: получить все встречи
-app.get('/api/meetings', async (req, res) => {
-  const snapshot = await db.collection('meetings').get();
-  const meetings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  res.json(meetings);
-});
-
-// API: записаться на встречу
-app.post('/api/meetings/:id/signup', async (req, res) => {
-  const { name } = req.body;
-  const meetingRef = db.collection('meetings').doc(req.params.id);
-  const doc = await meetingRef.get();
-  const guests = doc.data().guests || [];
-  if (!guests.includes(name)) {
-    await meetingRef.update({ guests: [...guests, name] });
+// Вспомогательные функции
+const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
+const getFingerprint = () => {
+  let fp = localStorage.getItem('device_fingerprint');
+  if (!fp) {
+    fp = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36) + Date.now().toString(36);
+    localStorage.setItem('device_fingerprint', fp);
   }
-  res.json({ success: true });
-});
+  return fp;
+};
 
-// API: отменить запись
-app.post('/api/meetings/:id/cancel', async (req, res) => {
-  const { name } = req.body;
-  const meetingRef = db.collection('meetings').doc(req.params.id);
-  const doc = await meetingRef.get();
-  const guests = doc.data().guests || [];
-  const newGuests = guests.filter(g => g !== name);
-  await meetingRef.update({ guests: newGuests });
-  res.json({ success: true });
-});
+// Компонент ввода кода (с кнопкой повторной отправки)
+const CodeVerification = ({ email, onVerify, onCancel, onResend }) => {
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
 
-// API: добавить встречу
-app.post('/api/meetings', async (req, res) => {
-  const { secret, meeting } = req.body;
-  if (secret !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ error: 'Неавторизовано' });
-  }
-  const newId = Date.now().toString();
-  await db.collection('meetings').doc(newId).set({
-    ...meeting,
-    id: newId,
-    guests: []
-  });
-  res.json({ success: true });
-});
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
 
-// API: удалить встречу
-app.delete('/api/meetings/:id', async (req, res) => {
-  const { secret } = req.body;
-  if (secret !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ error: 'Неавторизовано' });
-  }
-  await db.collection('meetings').doc(req.params.id).delete();
-  res.json({ success: true });
-});
+    try {
+      const verificationDoc = await db.collection('verification_codes').doc(email).get();
+      
+      if (!verificationDoc.exists) {
+        setError('Код не найден. Запросите новый код.');
+        setLoading(false);
+        return;
+      }
 
-// API: проверка имени
-app.post('/api/check-username', async (req, res) => {
-  const { username } = req.body;
-  const snapshot = await db.collection('meetings').get();
-  let existingUsers = new Set();
-  snapshot.forEach(doc => {
-    const guests = doc.data().guests || [];
-    guests.forEach(guest => existingUsers.add(guest));
-  });
-  res.json({ available: !existingUsers.has(username) });
-});
+      const data = verificationDoc.data();
+      const codeFromDb = String(data.code);
+      const enteredCode = String(code);
+      
+      if (codeFromDb !== enteredCode) {
+        setError('Неверный код');
+        setLoading(false);
+        return;
+      }
 
-// API: регистрация устройства
-app.post('/api/register-device', async (req, res) => {
-  const { fingerprint, username } = req.body;
-  const deviceDoc = await db.collection('devices').doc(fingerprint).get();
+      if (data.expiresAt < Date.now()) {
+        setError('Код истек. Запросите новый.');
+        setLoading(false);
+        return;
+      }
+      
+      await db.collection('verification_codes').doc(email).delete();
+      onVerify();
+    } catch (err) {
+      console.error('Ошибка верификации:', err);
+      setError('Ошибка проверки кода');
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    setError('');
+    try {
+      await onResend();
+      setError('✅ Новый код отправлен на почту');
+    } catch (err) {
+      setError('Ошибка отправки кода. Попробуйте позже.');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  return (
+    <div className="modal" onClick={onCancel}>
+      <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <h3>Подтверждение email</h3>
+        <p>Код отправлен на {email}</p>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="text"
+            placeholder="Введите 6-значный код"
+            value={code || ''}
+            onChange={e => setCode(e.target.value)}
+            maxLength={6}
+            autoFocus
+          />
+          {error && <div className="error-message">{error}</div>}
+          <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
+            <button type="button" className="btn" onClick={onCancel}>Отмена</button>
+            <button type="button" className="btn" onClick={handleResend} disabled={resending}>
+              {resending ? 'Отправка...' : '🔄 Отправить код повторно'}
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Проверка...' : 'Подтвердить'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Компонент регистрации/входа
+const Login = ({ onLogin }) => {
+  const [step, setStep] = useState('form');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [pendingUsername, setPendingUsername] = useState('');
+  const [showFakeMessage, setShowFakeMessage] = useState(false);
   
-  if (!deviceDoc.exists && username) {
+  // Секретное кодовое слово для администратора (изменить на своё)
+  const ADMIN_SECRET_WORD = 'tula2025';
+
+  const sendCode = async (targetEmail, targetUsername) => {
+    const code = generateCode();
+    const expiresAt = Date.now() + 5 * 60 * 1000;
+
+    await db.collection('verification_codes').doc(targetEmail).set({
+      code: code,
+      expiresAt: expiresAt,
+      username: targetUsername
+    });
+
+    const res = await fetch('/api/send-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: targetEmail, code: code })
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Ошибка отправки письма');
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    const fingerprint = getFingerprint();
+
+    try {
+      const deviceDoc = await db.collection('devices').doc(fingerprint).get();
+      
+      if (deviceDoc.exists) {
+        const existingUsername = deviceDoc.data().username;
+        onLogin(existingUsername);
+        return;
+      }
+
+      // Проверка на секретное кодовое слово администратора
+      if (username === ADMIN_SECRET_WORD) {
+        await db.collection('devices').doc(fingerprint).set({
+          username: 'admin',
+          lastUsed: new Date().toISOString()
+        });
+        onLogin('admin');
+        return;
+      }
+
+      // Если введено "admin" (старый способ) — показываем фейковое сообщение
+      if (username === 'admin') {
+        setShowFakeMessage(true);
+        setLoading(false);
+        setTimeout(() => {
+          setShowFakeMessage(false);
+        }, 3000);
+        return;
+      }
+
+      const userDoc = await db.collection('users').doc(username).get();
+      
+      if (!userDoc.exists) {
+        if (!email) {
+          setError('Введите email для регистрации');
+          setLoading(false);
+          return;
+        }
+        await sendCode(email, username);
+        setPendingEmail(email);
+        setPendingUsername(username);
+        setStep('verify');
+      } else {
+        const devices = userDoc.data().devices || [];
+        
+        if (devices.includes(fingerprint)) {
+          onLogin(username);
+        } else {
+          const userEmail = userDoc.data().email;
+          if (!userEmail) {
+            setError('У пользователя не сохранён email. Обратитесь к администратору.');
+            setLoading(false);
+            return;
+          }
+          setPendingEmail(userEmail);
+          setPendingUsername(username);
+          await sendCode(userEmail, username);
+          setStep('verify');
+        }
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    const fingerprint = getFingerprint();
+    const verificationDoc = await db.collection('verification_codes').doc(pendingEmail).get();
+    
+    if (!verificationDoc.exists) {
+      setError('Ошибка верификации');
+      setStep('form');
+      return;
+    }
+
+    const verifiedUsername = verificationDoc.data().username;
+    const userEmail = pendingEmail;
+    const userDoc = await db.collection('users').doc(verifiedUsername).get();
+
+    if (!userDoc.exists) {
+      await db.collection('users').doc(verifiedUsername).set({
+        username: verifiedUsername,
+        email: userEmail,
+        devices: [fingerprint],
+        createdAt: new Date().toISOString()
+      });
+    } else {
+      const devices = userDoc.data().devices || [];
+      if (!devices.includes(fingerprint)) {
+        await db.collection('users').doc(verifiedUsername).update({
+          devices: [...devices, fingerprint]
+        });
+      }
+      if (!userDoc.data().email && userEmail) {
+        await db.collection('users').doc(verifiedUsername).update({
+          email: userEmail
+        });
+      }
+    }
+
     await db.collection('devices').doc(fingerprint).set({
-      username: username,
+      username: verifiedUsername,
       lastUsed: new Date().toISOString()
     });
+
+    await db.collection('verification_codes').doc(pendingEmail).delete();
+    onLogin(verifiedUsername);
+  };
+
+  const handleResendCode = async () => {
+    await sendCode(pendingEmail, pendingUsername);
+  };
+
+  if (showFakeMessage) {
+    return (
+      <div className="fake-message">
+        <h1>🚫 ДОСТУП ЗАПРЕЩЁН</h1>
+        <p>Хорошая попытка, но нет</p>
+        <small>Попробуйте другое имя</small>
+      </div>
+    );
   }
-  res.json({ success: true, username: deviceDoc.exists ? deviceDoc.data().username : username });
-});
 
-// API: отправка кода
-app.post('/api/send-code', async (req, res) => {
-  const { email, code } = req.body;
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      from: 'Книжный клуб <noreply@mail.tulabook.ru>',
-      to: email,
-      subject: 'Код подтверждения',
-      html: `<p>Ваш код: <strong>${code}</strong></p>`
-    })
-  });
-  
-  const data = await response.json();
-  res.status(response.status).json(data);
-});
+  if (step === 'verify') {
+    return (
+      <CodeVerification 
+        email={pendingEmail} 
+        onVerify={handleVerify} 
+        onCancel={() => setStep('form')}
+        onResend={handleResendCode}
+      />
+    );
+  }
 
-// Раздача статики
-app.use(express.static('public'));
+  return (
+    <div className="login-container">
+      <h2>📚 Книжный клуб Тулы</h2>
+      <form onSubmit={handleSubmit}>
+        <input
+          className="login-input"
+          placeholder="Как к тебе обращаться?"
+          value={username || ''}
+          onChange={e => setUsername(e.target.value)}
+          autoFocus
+        />
+        <input
+          className="login-input"
+          placeholder="Email (для подтверждения)"
+          value={email || ''}
+          onChange={e => setEmail(e.target.value)}
+          type="email"
+        />
+        {error && <div className="error-message">{error}</div>}
+        <button
+          type="submit"
+          className="btn"
+          style={{ background: '#5c4426', color: 'white', width: '100%', padding: '12px' }}
+          disabled={loading}
+        >
+          {loading ? '✨ Проверка...' : '✨ Войти ✨'}
+        </button>
+      </form>
+      <p style={{ fontSize: '0.7rem', color: '#c7a46b', marginTop: '15px', textAlign: 'center' }}>
+        Администратор: войдите со специальным кодовым словом
+      </p>
+    </div>
+  );
+};
 
-module.exports = app;
+// Модальное окно для редактирования встречи
+const MeetingModal = ({ meeting, onSave, onClose }) => {
+  const [book, setBook] = useState(meeting?.book || '');
+  const [author, setAuthor] = useState(meeting?.author || '');
+  const [date, setDate] = useState(meeting?.date || '');
+  const [time, setTime] = useState(meeting?.time || '19:00');
+  const [location, setLocation] = useState(meeting?.location || '');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave({ ...meeting, book, author, date, time, location });
+  };
+
+  return (
+    <div className="modal" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <h3>{meeting ? 'Редактировать встречу' : 'Новая встреча'}</h3>
+        <form onSubmit={handleSubmit}>
+          <input placeholder="Название книги" value={book || ''} onChange={e => setBook(e.target.value)} required />
+          <input placeholder="Автор" value={author || ''} onChange={e => setAuthor(e.target.value)} required />
+          <input type="date" value={date || ''} onChange={e => setDate(e.target.value)} required />
+          <input type="time" value={time || ''} onChange={e => setTime(e.target.value)} required />
+          <input placeholder="Место встречи" value={location || ''} onChange={e => setLocation(e.target.value)} required />
+          <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
+            <button type="button" className="btn" onClick={onClose}>Отмена</button>
+            <button type="submit" className="btn btn-primary">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Главный компонент
+const App = () => {
+  const [user, setUser] = useState(null);
+  const [meetings, setMeetings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingMeeting, setEditingMeeting] = useState(null);
+  const isAdmin = user === 'admin';
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('bookclub_user');
+    if (savedUser) {
+      setUser(savedUser);
+      setLoading(false);
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsubscribe = db.collection('meetings').onSnapshot(snapshot => {
+      const meetingsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMeetings(meetingsList);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  const signUp = async (meetingId) => {
+    const meetingRef = db.collection('meetings').doc(meetingId);
+    const doc = await meetingRef.get();
+    const guests = doc.data().guests || [];
+    if (!guests.includes(user)) {
+      await meetingRef.update({ guests: [...guests, user] });
+    }
+  };
+
+  const cancelSignUp = async (meetingId) => {
+    const meetingRef = db.collection('meetings').doc(meetingId);
+    const doc = await meetingRef.get();
+    const guests = doc.data().guests || [];
+    const newGuests = guests.filter(g => g !== user);
+    await meetingRef.update({ guests: newGuests });
+  };
+
+  const addMeeting = async (meeting) => {
+    const newId = Date.now().toString();
+    await db.collection('meetings').doc(newId).set({
+      ...meeting,
+      id: newId,
+      guests: []
+    });
+  };
+
+  const updateMeeting = async (meeting) => {
+    await db.collection('meetings').doc(meeting.id).update(meeting);
+  };
+
+  const deleteMeeting = async (id) => {
+    if (confirm('Удалить встречу?')) {
+      await db.collection('meetings').doc(id).delete();
+    }
+  };
+
+  const handleSave = (meeting) => {
+    if (meeting.id) updateMeeting(meeting);
+    else addMeeting(meeting);
+    setShowModal(false);
+  };
+
+  const handleLogin = (username) => {
+    localStorage.setItem('bookclub_user', username);
+    setUser(username);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('bookclub_user');
+    setUser(null);
+  };
+
+  if (!user) return <Login onLogin={handleLogin} />;
+  if (loading) return <div className="loading">📡 Загрузка...</div>;
+
+  return (
+    <div className="container">
+      <div className="header">
+        <div className="logo"><h1>📖 БукКлуб | Тула</h1></div>
+        <div className="user-info">
+          <span>👋 {user}</span>
+          {isAdmin && <span className="admin-badge">Админ</span>}
+          <button className="btn" onClick={handleLogout}>Выйти</button>
+        </div>
+      </div>
+
+      {isAdmin && (
+        <button className="btn btn-add" onClick={() => { setEditingMeeting(null); setShowModal(true); }}>
+          ➕ Добавить встречу
+        </button>
+      )}
+
+      <div className="meetings-grid">
+        {meetings.map(meeting => (
+          <div key={meeting.id} className="meeting-card">
+            {isAdmin && (
+              <div className="admin-actions">
+                <button className="icon-btn" onClick={() => { setEditingMeeting(meeting); setShowModal(true); }}>✏️</button>
+                <button className="icon-btn" onClick={() => deleteMeeting(meeting.id)}>🗑️</button>
+              </div>
+            )}
+            <div className="book-title">{meeting.book}</div>
+            <div className="author">{meeting.author}</div>
+            <div className="meeting-details">
+              <span className="detail">📅 {new Date(meeting.date).toLocaleDateString('ru-RU')}</span>
+              <span className="detail">⏰ {meeting.time}</span>
+              <span className="detail">📍 {meeting.location}</span>
+            </div>
+            <div className="guests-section">
+              <strong>👥 Участники ({meeting.guests?.length || 0})</strong>
+              <div className="guest-list">
+                {(!meeting.guests || meeting.guests.length === 0) && <span style={{ color: '#bda68a' }}>Пока никого нет</span>}
+                {meeting.guests?.map((g, i) => <span key={i} className="guest-badge">{g} {g === user && '(вы)'}</span>)}
+              </div>
+            </div>
+            <div>
+              {!meeting.guests?.includes(user) ?
+                <button className="btn btn-primary" onClick={() => signUp(meeting.id)}>✍️ Записаться</button> :
+                <button className="btn btn-danger" onClick={() => cancelSignUp(meeting.id)}>❌ Отменить запись</button>
+              }
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {showModal && (
+        <MeetingModal
+          meeting={editingMeeting}
+          onSave={handleSave}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
