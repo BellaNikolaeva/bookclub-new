@@ -200,8 +200,37 @@
             padding: 50px;
             color: #7e6952;
         }
+        .fake-message {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            flex-direction: column;
+        }
+        .fake-message h1 {
+            color: #ff4444;
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        .fake-message p {
+            color: #ffffff;
+            font-size: 1.5rem;
+        }
+        .fake-message small {
+            color: #888888;
+            font-size: 1rem;
+            margin-top: 30px;
+        }
         @media (max-width: 700px) {
             .meetings-grid { grid-template-columns: 1fr; }
+            .fake-message h1 { font-size: 2rem; }
+            .fake-message p { font-size: 1rem; }
         }
     </style>
 </head>
@@ -296,7 +325,7 @@ const CodeVerification = ({ email, onVerify, onCancel, onResend }) => {
     setError('');
     try {
       await onResend();
-      setError('Новый код отправлен на почту');
+      setError('✅ Новый код отправлен на почту');
     } catch (err) {
       setError('Ошибка отправки кода. Попробуйте позже.');
     } finally {
@@ -322,7 +351,7 @@ const CodeVerification = ({ email, onVerify, onCancel, onResend }) => {
           <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
             <button type="button" className="btn" onClick={onCancel}>Отмена</button>
             <button type="button" className="btn" onClick={handleResend} disabled={resending}>
-              {resending ? 'Отправка...' : 'Отправить код повторно'}
+              {resending ? 'Отправка...' : '🔄 Отправить код повторно'}
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? 'Проверка...' : 'Подтвердить'}
@@ -343,19 +372,21 @@ const Login = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
   const [pendingUsername, setPendingUsername] = useState('');
+  const [showFakeMessage, setShowFakeMessage] = useState(false);
+  
+  // Секретное кодовое слово для администратора (изменить на своё)
+  const ADMIN_SECRET_WORD = 'tula2025';
 
   const sendCode = async (targetEmail, targetUsername) => {
     const code = generateCode();
     const expiresAt = Date.now() + 5 * 60 * 1000;
 
-    // Сохраняем код в Firebase
     await db.collection('verification_codes').doc(targetEmail).set({
       code: code,
       expiresAt: expiresAt,
       username: targetUsername
     });
 
-    // Отправляем письмо через Vercel Function
     const res = await fetch('/api/send-code', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -381,6 +412,26 @@ const Login = ({ onLogin }) => {
       if (deviceDoc.exists) {
         const existingUsername = deviceDoc.data().username;
         onLogin(existingUsername);
+        return;
+      }
+
+      // Проверка на секретное кодовое слово администратора
+      if (username === ADMIN_SECRET_WORD) {
+        await db.collection('devices').doc(fingerprint).set({
+          username: 'admin',
+          lastUsed: new Date().toISOString()
+        });
+        onLogin('admin');
+        return;
+      }
+
+      // Если введено "admin" (старый способ) — показываем фейковое сообщение
+      if (username === 'admin') {
+        setShowFakeMessage(true);
+        setLoading(false);
+        setTimeout(() => {
+          setShowFakeMessage(false);
+        }, 3000);
         return;
       }
 
@@ -469,6 +520,16 @@ const Login = ({ onLogin }) => {
     await sendCode(pendingEmail, pendingUsername);
   };
 
+  if (showFakeMessage) {
+    return (
+      <div className="fake-message">
+        <h1>🚫 ДОСТУП ЗАПРЕЩЁН</h1>
+        <p>Хорошая попытка, но нет</p>
+        <small>Попробуйте другое имя</small>
+      </div>
+    );
+  }
+
   if (step === 'verify') {
     return (
       <CodeVerification 
@@ -482,7 +543,7 @@ const Login = ({ onLogin }) => {
 
   return (
     <div className="login-container">
-      <h2>Книжный клуб Тулы</h2>
+      <h2>📚 Книжный клуб Тулы</h2>
       <form onSubmit={handleSubmit}>
         <input
           className="login-input"
@@ -505,9 +566,12 @@ const Login = ({ onLogin }) => {
           style={{ background: '#5c4426', color: 'white', width: '100%', padding: '12px' }}
           disabled={loading}
         >
-          {loading ? 'Проверка...' : 'Войти'}
+          {loading ? '✨ Проверка...' : '✨ Войти ✨'}
         </button>
       </form>
+      <p style={{ fontSize: '0.7rem', color: '#c7a46b', marginTop: '15px', textAlign: 'center' }}>
+        Администратор: войдите со специальным кодовым словом
+      </p>
     </div>
   );
 };
@@ -626,14 +690,14 @@ const App = () => {
   };
 
   if (!user) return <Login onLogin={handleLogin} />;
-  if (loading) return <div className="loading">Загрузка...</div>;
+  if (loading) return <div className="loading">📡 Загрузка...</div>;
 
   return (
     <div className="container">
       <div className="header">
-        <div className="logo"><h1>БукКлуб | Тула</h1></div>
+        <div className="logo"><h1>📖 БукКлуб | Тула</h1></div>
         <div className="user-info">
-          <span>{user}</span>
+          <span>👋 {user}</span>
           {isAdmin && <span className="admin-badge">Админ</span>}
           <button className="btn" onClick={handleLogout}>Выйти</button>
         </div>
@@ -641,7 +705,7 @@ const App = () => {
 
       {isAdmin && (
         <button className="btn btn-add" onClick={() => { setEditingMeeting(null); setShowModal(true); }}>
-          Добавить встречу
+          ➕ Добавить встречу
         </button>
       )}
 
@@ -657,12 +721,12 @@ const App = () => {
             <div className="book-title">{meeting.book}</div>
             <div className="author">{meeting.author}</div>
             <div className="meeting-details">
-              <span className="detail">{new Date(meeting.date).toLocaleDateString('ru-RU')}</span>
-              <span className="detail">{meeting.time}</span>
-              <span className="detail">{meeting.location}</span>
+              <span className="detail">📅 {new Date(meeting.date).toLocaleDateString('ru-RU')}</span>
+              <span className="detail">⏰ {meeting.time}</span>
+              <span className="detail">📍 {meeting.location}</span>
             </div>
             <div className="guests-section">
-              <strong>Участники ({meeting.guests?.length || 0})</strong>
+              <strong>👥 Участники ({meeting.guests?.length || 0})</strong>
               <div className="guest-list">
                 {(!meeting.guests || meeting.guests.length === 0) && <span style={{ color: '#bda68a' }}>Пока никого нет</span>}
                 {meeting.guests?.map((g, i) => <span key={i} className="guest-badge">{g} {g === user && '(вы)'}</span>)}
@@ -670,8 +734,8 @@ const App = () => {
             </div>
             <div>
               {!meeting.guests?.includes(user) ?
-                <button className="btn btn-primary" onClick={() => signUp(meeting.id)}>Записаться</button> :
-                <button className="btn btn-danger" onClick={() => cancelSignUp(meeting.id)}>Отменить запись</button>
+                <button className="btn btn-primary" onClick={() => signUp(meeting.id)}>✍️ Записаться</button> :
+                <button className="btn btn-danger" onClick={() => cancelSignUp(meeting.id)}>❌ Отменить запись</button>
               }
             </div>
           </div>
