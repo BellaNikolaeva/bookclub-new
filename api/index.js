@@ -7,7 +7,7 @@ app.use(express.json());
 
 // Firebase Admin SDK
 const serviceAccount = {
-  projectId: process.env.FIREBASE_PROJECT_ID,
+  project_id: process.env.FIREBASE_PROJECT_ID,
   privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
   clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
 };
@@ -50,7 +50,7 @@ app.post('/api/meetings/:id/cancel', async (req, res) => {
   res.json({ success: true });
 });
 
-// API: добавить встречу
+// API: добавить встречу (требует секретный ключ)
 app.post('/api/meetings', async (req, res) => {
   const { secret, meeting } = req.body;
   if (secret !== process.env.ADMIN_SECRET) {
@@ -116,7 +116,7 @@ app.post('/api/send-code', async (req, res) => {
       from: 'Книжный клуб <noreply@mail.tulabook.ru>',
       to: email,
       subject: 'Код подтверждения',
-      html: `<p>Ваш код: <strong>${code}</strong></p>`
+      html: `<p>Ваш код подтверждения: <strong>${code}</strong></p><p>Код действителен 5 минут.</p>`
     })
   });
   

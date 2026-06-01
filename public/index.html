@@ -249,7 +249,6 @@
 <script type="text/babel">
 const { useState, useEffect } = React;
 
-// Конфигурация Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDeKUvJ50VcDihRi4EpE7PPJjPP-yhdiKs",
   authDomain: "book-club-2025-06.firebaseapp.com",
@@ -259,11 +258,9 @@ const firebaseConfig = {
   appId: "1:290500419564:web:e748262bfa58fd667b2ac9"
 };
 
-// Инициализация Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Вспомогательные функции
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
 const getFingerprint = () => {
   let fp = localStorage.getItem('device_fingerprint');
@@ -274,7 +271,6 @@ const getFingerprint = () => {
   return fp;
 };
 
-// Компонент ввода кода (с кнопкой повторной отправки)
 const CodeVerification = ({ email, onVerify, onCancel, onResend }) => {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
@@ -311,10 +307,9 @@ const CodeVerification = ({ email, onVerify, onCancel, onResend }) => {
         return;
       }
       
-      await db.collection('verification_codes').doc(email).delete();
+      setLoading(false);
       onVerify();
     } catch (err) {
-      console.error('Ошибка верификации:', err);
       setError('Ошибка проверки кода');
       setLoading(false);
     }
@@ -363,7 +358,6 @@ const CodeVerification = ({ email, onVerify, onCancel, onResend }) => {
   );
 };
 
-// Компонент регистрации/входа
 const Login = ({ onLogin }) => {
   const [step, setStep] = useState('form');
   const [username, setUsername] = useState('');
@@ -374,7 +368,6 @@ const Login = ({ onLogin }) => {
   const [pendingUsername, setPendingUsername] = useState('');
   const [showFakeMessage, setShowFakeMessage] = useState(false);
   
-  // Секретное кодовое слово для администратора (изменить на своё)
   const ADMIN_SECRET_WORD = 'tula2025';
 
   const sendCode = async (targetEmail, targetUsername) => {
@@ -415,7 +408,6 @@ const Login = ({ onLogin }) => {
         return;
       }
 
-      // Проверка на секретное кодовое слово администратора
       if (username === ADMIN_SECRET_WORD) {
         await db.collection('devices').doc(fingerprint).set({
           username: 'admin',
@@ -425,7 +417,6 @@ const Login = ({ onLogin }) => {
         return;
       }
 
-      // Если введено "admin" (старый способ) — показываем фейковое сообщение
       if (username === 'admin') {
         setShowFakeMessage(true);
         setLoading(false);
@@ -576,7 +567,6 @@ const Login = ({ onLogin }) => {
   );
 };
 
-// Модальное окно для редактирования встречи
 const MeetingModal = ({ meeting, onSave, onClose }) => {
   const [book, setBook] = useState(meeting?.book || '');
   const [author, setAuthor] = useState(meeting?.author || '');
@@ -609,7 +599,6 @@ const MeetingModal = ({ meeting, onSave, onClose }) => {
   );
 };
 
-// Главный компонент
 const App = () => {
   const [user, setUser] = useState(null);
   const [meetings, setMeetings] = useState([]);

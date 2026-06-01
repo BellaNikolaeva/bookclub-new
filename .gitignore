@@ -1,4 +1,65 @@
+# Зависимости
 node_modules/
-.env
 package-lock.json
+yarn.lock
+
+# Переменные окружения и секреты
+.env
+.env.local
+.env.production
+.env.development
+*.pem
+*.key
+*.p12
+serviceAccountKey.json
+*-firebase-adminsdk-*.json
+
+# Логи и временные файлы
+*.log
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE и редакторы
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+
+# Vercel (кеш и конфиги)
 .vercel
+.vercelignore
+
+# Netlify (кеш)
+.netlify
+
+# Системные файлы
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Локальные базы данных
+*.db
+*.sqlite
+*.sqlite3
+
+# Отчеты о покрытии кода
+coverage/
+.nyc_output/
+
+# Сборки
+dist/
+build/
+out/
+
+# Отладка
+debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
